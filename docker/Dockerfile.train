@@ -1,0 +1,63 @@
+FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
+
+# Evitar prompts interactivos
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    build-essential \
+    cmake \
+    libomp-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Crear directorio de trabajo
+WORKDIR /app
+
+# Instalar dependencias de Python para fine-tuning
+# Dependencias core - NO usar || true, estas son esenciales
+RUN pip install --no-cache-dir \
+    transformers>=4.36.0 \
+    datasets>=2.15.0 \
+    accelerate>=0.25.0 \
+    peft>=0.7.0 \
+    trl>=0.7.0 \
+    bitsandbytes>=0.41.0 \
+    scipy \
+    sentencepiece \
+    protobuf \
+    einops
+
+# Flash attention es opcional (requiere GPU y compilación)
+RUN pip install --no-cache-dir flash-attn --no-build-isolation || true
+
+# Instalar Unsloth (optimización de entrenamiento)
+RUN pip install --no-cache-dir "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git" || \
+    pip install --no-cache-dir unsloth || true
+
+# llama-cpp-python es opcional (para conversión GGUF local)
+RUN pip install --no-cache-dir llama-cpp-python || true
+
+# Instalar herramientas adicionales
+RUN pip install --no-cache-dir \
+    jupyter \
+    pandas \
+    matplotlib \
+    tqdm \
+    huggingface_hub \
+    gguf
+
+# Clonar llama.cpp SOLO para scripts de conversión (sin instalar requirements)
+RUN git clone --depth 1 https://github.com/ggerganov/llama.cpp.git /opt/llama.cpp
+
+ENV LLAMA_CPP_DIR=/opt/llama.cpp
+
+# Configurar caché de HuggingFace
+ENV HF_HOME=/app/models/huggingface
+ENV TRANSFORMERS_CACHE=/app/models/huggingface
+
+# Directorio de trabajo para scripts
+WORKDIR /app/scripts
+
+CMD ["bash"]

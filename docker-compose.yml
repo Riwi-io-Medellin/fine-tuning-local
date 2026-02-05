@@ -1,0 +1,92 @@
+services:
+  # Servicio de entrenamiento
+  training:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.train
+    container_name: fine-tuning-trainer
+    volumes:
+      - ./scripts:/app/scripts
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./ollama:/app/ollama
+    environment:
+      - HF_HOME=/app/models/huggingface
+    # ============================================================
+    # CONFIGURACIÓN GPU (descomentar si tienes NVIDIA GPU)
+    # ============================================================
+    # environment:
+    #   - CUDA_VISIBLE_DEVICES=0
+    #   - HF_HOME=/app/models/huggingface
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    # ============================================================
+    working_dir: /app
+    stdin_open: true
+    tty: true
+    command: [ "bash" ]
+
+  # Servidor Ollama para servir modelos
+  ollama:
+    image: ollama/ollama:latest
+    container_name: fine-tuning-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./models/gguf:/models
+      - ./ollama:/ollama
+    # ============================================================
+    # CONFIGURACIÓN GPU (descomentar si tienes NVIDIA GPU)
+    # ============================================================
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    # ============================================================
+    restart: unless-stopped
+
+  # Jupyter Notebook (opcional)
+  jupyter:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.train
+    container_name: fine-tuning-jupyter
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./scripts:/app/scripts
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./notebooks:/app/notebooks
+    environment:
+      - HF_HOME=/app/models/huggingface
+    # ============================================================
+    # CONFIGURACIÓN GPU (descomentar si tienes NVIDIA GPU)
+    # ============================================================
+    # environment:
+    #   - CUDA_VISIBLE_DEVICES=0
+    #   - HF_HOME=/app/models/huggingface
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    # ============================================================
+    working_dir: /app/notebooks
+    command: [ "jupyter", "notebook", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root" ]
+    profiles:
+      - jupyter
+
+volumes:
+  ollama_data:

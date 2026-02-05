@@ -1,0 +1,23 @@
+# Modelos y artefactos de entrenamiento
+models/
+!models/.gitkeep
+
+# Caché de HuggingFace
+*.cache
+__pycache__/
+*.pyc
+
+# Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Archivos temporales
+*.tmp
+*.log
+*.bak
+
+# Modelfile generado
+ollama/Modelfile
+
+# OS files
+.DS_Store
+Thumbs.db
